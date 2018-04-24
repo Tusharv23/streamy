@@ -1,11 +1,16 @@
 {
-    "name": "application-name"
-  , "version": "0.0.1"
-  , "private": true
-  , "dependencies": {
-      "express": "2.5.8"
-    , "jade": ">= 0.0.1"
-    , "socket.io": "0.8.5"
-    , "findit": "0.1.1"
-  }
+    "name": "application-name",
+    "version": "0.0.1",
+    "private": true,
+    "dependencies": {
+        "express": "2.5.8",
+        "findit": "0.1.1",
+        "jade": "^1.11.0",
+        "kerberos": "~0.0.17",
+        "mongodb": "~2.2.19",
+        "passport": "^0.4.0",
+        "passport-local": "^1.0.0",
+        "pug": "^2.0.0-rc.4",
+        "socket.io": "0.8.5"
+    }
 }

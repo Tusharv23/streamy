@@ -2,12 +2,13 @@
 
 var fs = require('fs')
   , path = require('path')
-  , util = require('util')
+  , stream = require('stream')
 
   , MusicLibrary = require('./musiclibrary')
   , SocketServer = require('./socket-server')
 
   , express = require('express')
+  , mongodb = require('mongodb')
 
 var app = module.exports = express.createServer()
   , io = require('socket.io').listen(app);
@@ -41,21 +42,109 @@ app.configure('production', function(){
   app.use(express.errorHandler())
 })
 
-// Routes
+//Routes
 
-app.get('/', function(req, res){
+app.get('/home', function(req, res){
   res.render('index.html', {
     locals: {
       title: 'Streamy client'
     }
   })
 })
+app.get('/login', function(req, res){
+  res.render('final.html', {
+    locals: {
+      title: 'Streamy client'
+    }
+  })
+})
+app.get('/register', function(req, res){
+  res.render('registerfinal.html', {
+    locals: {
+      title: 'Streamy client'
+    }
+  })
+})
+app.get('/showdb',function(req, res){
+  var MongoClient = mongodb.MongoClient;
+  var url = 'mongodb://localhost:27017/roundcloud';
+  MongoClient.connect(url, function(err, db){
+    if(err){ console.log(err); }
+    else {console.log("connected to database");}
+
+    var collection = db.collection('user');
+    collection.find().toArray(function(err, result){
+      if(err){
+        console.log(err);
+      }
+      else {
+        res.send(result); 
+      }
+      db.close();
+    })
+  })
+})
+app.post('/login_cred', function(req, res) {
+  //res.send('You sent the name "' + req.body.email + '"."'+ req.body.password +'"');
+  var MongoClient = mongodb.MongoClient;
+  var url = 'mongodb://localhost:27017/roundcloud';
+  MongoClient.connect(url, function(err, db){
+    if(err){ console.log(err); }
+    else {console.log("connected to database");}
+
+    var collection = db.collection('user');
+    collection.find({email: req.body.email, password: req.body.password},{name: 1}).limit(1).toArray(function(err, result){
+      if(err){
+        console.log(err);
+      }
+      else if(result.length)
+      {
+        
+        res.redirect('/home');
+            
+      }
+      else{
+        res.send("Invalid credentials");
+      }
+    })
+  })
+})
+app.post('/register_details', function(req, res) {
+
+  var MongoClient = mongodb.MongoClient;
+  var url = 'mongodb://localhost:27017/roundcloud';
+  MongoClient.connect(url, function(err, db){
+    if(err){ console.log(err); }
+    else {console.log("connected to database");}
+
+    var collection = db.collection('user');
+
+    var temp_user = { name: req.body.name, password: req.body.password, email: req.body.email};
+        collection.insert([temp_user], function(err, result){
+          if(err){
+            console.log(err);
+          }
+          else{
+            res.render('final.html', {
+    locals: {
+      title: 'Streamy client'
+    }
+  })
+          }
+
+    
+      db.close();
+    })
+  })
+  //res.send('You sent the name "' + req.body.name + '".');
+});
+
 
 //Serve streaming audio - audio src points here
 app.get('/stream/:song', function(req, res) {
   var songPath = socketServer.musicLibrary.songs[req.params.song]
 
-  path.exists(songPath, function (exists) {
+  fs.exists(songPath, function (exists) {
     if(!exists) {
       var msg = 'File `' + songPath + '` not found'
       console.log('\nSTREAMY:', msg)
@@ -75,7 +164,7 @@ app.get('/stream/:song', function(req, res) {
       res.writeHead(200, { 'Content-Type': 'audio/mpeg', 'Content-Length': stats.size })
       var readStream = fs.createReadStream(songPath)
 
-      util.pump(readStream, res) //pump song to client
+      readStream.pipe(res) //pump song to client
     })
   })
 })
